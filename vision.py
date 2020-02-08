@@ -276,6 +276,12 @@ if __name__ == "__main__":
 
     cam0, cam1 = cameras
 
+    print("Getting vision table")
+    visionTable = ntinst.getTable("Vision")
+    print("Got vision table")
+
+    testEntry = visionTable.getEntry("Test")
+
     print("Looping")
     # loop forever
     while True:
@@ -285,7 +291,11 @@ if __name__ == "__main__":
         if time0 == 0:
             continue
 
-        cv2.putText(cam1.img, ''.join([chr(n) for n in [73, 32, 108, 111, 115, 116, 32, 116, 104, 101, 32, 103, 97, 109, 101]]), (1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (0, 0, 0))
+        
+
+        testEntry.setNumber(420)
+
+        cv2.putText(cam1.img, ''.join(map(chr, [73, 32, 108, 111, 115, 116, 32, 116, 104, 101, 32, 103, 97, 109, 101])), (1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (0, 0, 0))
         
         cam0.putFrame()
         cam1.putFrame()
