@@ -19,6 +19,9 @@ from cscore import CameraServer, VideoSource, UsbCamera, MjpegServer
 from networktables import NetworkTablesInstance
 import ntcore
 
+from grip_high_goal import Pipeline as g_HighGoal
+from grip_loading_station import Pipeline as g_LoadingStation
+
 #   JSON format:
 #   {
 #       "team": <team number>,
