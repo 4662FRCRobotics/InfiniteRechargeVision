@@ -19,8 +19,8 @@ from cscore import CameraServer, VideoSource, UsbCamera, MjpegServer
 from networktables import NetworkTablesInstance
 import ntcore
 
-from grip_high_goal import Pipeline as g_HighGoal
-from grip_loading_station import Pipeline as g_LoadingStation
+from grip_high_goal import Pipeline as HighGoalPipeline
+from grip_loading_station import Pipeline as LoadingStationPipeline
 
 #   JSON format:
 #   {
@@ -95,6 +95,28 @@ class CameraObject:  # Camera object to help with vision
         if img is not None:
             self.img = img
         self.source.putFrame(self.img)
+
+class HighGoal:
+    def __init__(self, data=None):
+        self.update(data)
+
+    def update(self, data=None):
+        self.data = data
+        if data is None:
+            self.x = None
+            self.y = None
+            self.w = None
+            self.h = None
+            self.center_x = None
+            self.center_y = None
+        else:
+            x, y, w, h = data
+            self.x = x
+            self.y = y
+            self.w = w
+            self.h = h
+            self.center_x = x + w / 2
+            self.center_y = y + h / 2
 
 team = None
 server = False
@@ -245,6 +267,17 @@ def startSwitchedCamera(config):
 
     return server
 
+CAM_FOV_Y = 44
+TARGET_HEIGHT = 17
+CAMERA_OFFSET = 32
+deg_per_pixel = None
+
+def calculate_distance(target_pixel_height):
+    radians = math.radians(deg_per_pixel * target_pixel_height)
+    distance = TARGET_HEIGHT / math.tan(radians)
+
+    return distance
+
 if __name__ == "__main__":
 
     inst = CameraServer.getInstance()
@@ -278,27 +311,66 @@ if __name__ == "__main__":
     num_cameras = len(cameras)
 
     cam0, cam1 = cameras
+    g_LoadingStation = LoadingStationPipeline()
+    g_HighGoal = HighGoalPipeline()
 
     print("Getting vision table")
     visionTable = ntinst.getTable("Vision")
     print("Got vision table")
 
-    testEntry = visionTable.getEntry("Test")
+    e_loadingStationAligned = visionTable.getEntry("isLoadingStationAligned")
+    e_highGoalAligned = visionTable.getEntry("isHighGoalAligned")
+
+    e_highGoalOffset = visionTable.getEntry("highGoalOffset")
+    e_highGoalDistance = visionTable.getEntry("highGoalDistance")
+
+    e_visionOn = visionTable.getEntry("isVisionOn")
+
+    highGoal = HighGoal()
+
+    deg_per_pixel = CAM_FOV_Y / cam0.h
 
     print("Looping")
     # loop forever
     while True:
+        bIsVisionOn = e_visionOn.getBoolean(False)
+
         time0 = cam0.updateFrame()
         time1 = cam1.updateFrame()
 
         if time0 == 0:
             continue
-
         
+        g_HighGoal.process(cam0.img)
 
-        testEntry.setNumber(420)
+        highGoalMatches = g_HighGoal.filter_contours_output
 
-        cv2.putText(cam1.img, ''.join(map(chr, [73, 32, 108, 111, 115, 116, 32, 116, 104, 101, 32, 103, 97, 109, 101])), (1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (0, 0, 0))
+        numHighGoalMatches = len(highGoalMatches)
+        if 1 <= numHighGoalMatches <= 2:
+            r1 = cv2.boundingRect(highGoalMatches[0])
+            x, y, w, h = r1
+            cv2.rectangle(cam0.img, (x, y), (x + w, y + h), (255, 0, 0))
+            highGoal.update(r1)
+
+            for highGoalMatch in highGoalMatches[1:]:
+                r1 = cv2.boundingRect(highGoalMatch)
+                x, y, w, h = r1
+                cv2.rectangle(cam0.img, (x, y), (x + w, y + h), (255, 255, 0))
+
+            highGoal.offset = highGoal.center_x - (cam0.w / 2)
+            highGoal.distance = calculate_distance(highGoal.h)
+            
+            #highGoal_x_avg = highGoal_x_sum / num_highGoalMatches
+            #isHighGoalAligned = 
+
+            e_highGoalAligned.setBoolean(abs(highGoal.offset) < 10)
+            e_highGoalOffset.setNumber(highGoal.offset)
+            e_highGoalDistance.setNumber(highGoal.distance)
+        else:
+            for entry in (e_loadingStationAligned, e_highGoalAligned):
+                entry.setBoolean(False)
+        
+        # cv2.putText(cam1.img, ''.join(map(chr, [73, 32, 108, 111, 115, 116, 32, 116, 104, 101, 32, 103, 97, 109, 101])), (1, 50), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (0, 0, 0))
         
         cam0.putFrame()
         cam1.putFrame()
