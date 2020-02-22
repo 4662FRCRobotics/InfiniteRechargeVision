@@ -323,6 +323,7 @@ if __name__ == "__main__":
 
     e_highGoalOffset = visionTable.getEntry("highGoalOffset")
     e_highGoalDistance = visionTable.getEntry("highGoalDistance")
+    e_highGoalIsVisible = visionTable.getEntry("highGoalVisible")
 
     e_visionOn = visionTable.getEntry("isVisionOn")
 
@@ -347,6 +348,9 @@ if __name__ == "__main__":
 
         numHighGoalMatches = len(highGoalMatches)
         if 1 <= numHighGoalMatches <= 2:
+            e_highGoalVisible.setBoolean(True)
+
+            # First and largest match
             r1 = cv2.boundingRect(highGoalMatches[0])
             x, y, w, h = r1
             cv2.rectangle(cam0.img, (x, y), (x + w, y + h), (255, 0, 0))
@@ -367,6 +371,7 @@ if __name__ == "__main__":
             e_highGoalOffset.setNumber(highGoal.offset)
             e_highGoalDistance.setNumber(highGoal.distance)
         else:
+            e_highGoalVisible.setBoolean(False)
             for entry in (e_loadingStationAligned, e_highGoalAligned):
                 entry.setBoolean(False)
         
