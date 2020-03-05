@@ -342,7 +342,7 @@ if __name__ == "__main__":
         if time0 == 0:
             continue
         
-        g_HighGoal.process(cam0.img)
+        g_HighGoal.process(cam1.img)
 
         highGoalMatches = g_HighGoal.filter_contours_output
 
@@ -353,15 +353,15 @@ if __name__ == "__main__":
             # First and largest match
             r1 = cv2.boundingRect(highGoalMatches[0])
             x, y, w, h = r1
-            cv2.rectangle(cam0.img, (x, y), (x + w, y + h), (255, 0, 0))
+            cv2.rectangle(cam1.img, (x, y), (x + w, y + h), (255, 0, 0))
             highGoal.update(r1)
 
             for highGoalMatch in highGoalMatches[1:]:
                 r1 = cv2.boundingRect(highGoalMatch)
                 x, y, w, h = r1
-                cv2.rectangle(cam0.img, (x, y), (x + w, y + h), (255, 255, 0))
+                cv2.rectangle(cam1.img, (x, y), (x + w, y + h), (255, 255, 0))
 
-            highGoal.offset = highGoal.center_x - (cam0.w / 2)
+            highGoal.offset = highGoal.center_x - (cam1.w / 2)
             highGoal.distance = calculate_distance(highGoal.h)
             
             #highGoal_x_avg = highGoal_x_sum / num_highGoalMatches
